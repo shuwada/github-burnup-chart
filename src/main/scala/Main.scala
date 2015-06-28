@@ -91,15 +91,7 @@ object Main extends App {
     githubClient
       .pagedGet(s"/repos/$owner/$repo/milestones", Map("state" -> "all"))
       .flatMap(_.value)
-      .map(milestone =>
-        Milestone(
-          (milestone \ "id").as[Long],
-          (milestone \ "title").as[String],
-          (milestone \ "due_on").asOpt[String].map(ZonedDateTime.parse),
-          (milestone \ "closed_at").asOpt[String].map(ZonedDateTime.parse),
-          (milestone \ "url").as[String]
-        )
-      )
+      .map(new Milestone(_))
       .toSeq
   }
 
@@ -121,16 +113,7 @@ object Main extends App {
   def analyzeIssueEvents(issueEvents: Seq[JsValue]): IssueEventProcessor = {
     val processor = new IssueEventProcessor
 
-    issueEvents.map(event =>
-      IssueEvent(
-        (event \ "id").as[Long],
-        ZonedDateTime.parse((event \ "created_at").as[String]),
-        (event \ "event").as[String],
-        (event \ "issue" \ "number").as[Long],
-        (event \ "milestone" \ "title").asOpt[String],
-        (event \ "pull_request").toOption.isDefined
-      )
-    )
+    issueEvents.map(new IssueEvent(_))
     .filter(_.isPullRequest == false)
     .reverse
     .foreach(processor.process(_))
