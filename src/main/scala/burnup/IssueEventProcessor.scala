@@ -1,6 +1,7 @@
 package burnup
 
 import github.IssueEvent
+import play.api.libs.json.JsValue
 
 import scala.collection.{Set, mutable}
 
@@ -8,9 +9,11 @@ import scala.collection.{Set, mutable}
  * Taking a stream of GitHub issue events from a repository, and generate the number of
  * issues in milestones and closed issues over time. The issue events are expected to be
  * in order of the creation.
+ *
+ * @param oldToNewMilestoneTitles if a milestone was renamed, specify old name -> new name
  */
-class IssueEventProcessor {
-  private val issueNumberToMilestoneTitle = mutable.Map[Long, String]()
+class IssueEventProcessor (val oldToNewMilestoneTitles: Map[String, String] = Map()) {
+  val issueNumberToMilestoneTitle = mutable.Map[Long, String]()
   private val closedIssueNumbers = mutable.Set[Long]()
 
   val milestoneHistory = mutable.Map[String, MilestoneHistory]()
@@ -30,24 +33,28 @@ class IssueEventProcessor {
       // when an issue is milestoned or demilestoned, add a data point
       case "milestoned" =>
         e.milestoneTitle.map { milestoneTitle =>
-          issueNumberToMilestoneTitle.put(e.issueNumber, milestoneTitle)
-          recordDataPoint(milestoneTitle)
+          val title = oldToNewMilestoneTitles.getOrElse(milestoneTitle, milestoneTitle)
+          issueNumberToMilestoneTitle.put(e.issue.number, title)
+          recordDataPoint(title)
         }
       case "demilestoned" =>
-        issueNumberToMilestoneTitle.remove(e.issueNumber).map { milestoneTitle =>
-          recordDataPoint(milestoneTitle)
+        issueNumberToMilestoneTitle.remove(e.issue.number).map { milestoneTitle =>
+          val title = oldToNewMilestoneTitles.getOrElse(milestoneTitle, milestoneTitle)
+          recordDataPoint(title)
         }
 
       // when an issue is closed or reopened and if the issue is in milestone, add a data point
       case "closed" =>
-        closedIssueNumbers.add(e.issueNumber)
-        issueNumberToMilestoneTitle.get(e.issueNumber).map { milestoneTitle =>
-          recordDataPoint(milestoneTitle)
+        closedIssueNumbers.add(e.issue.number)
+        issueNumberToMilestoneTitle.get(e.issue.number).map { milestoneTitle =>
+          val title = oldToNewMilestoneTitles.getOrElse(milestoneTitle, milestoneTitle)
+          recordDataPoint(title)
         }
       case "reopened" =>
-        closedIssueNumbers.remove(e.issueNumber)
-        issueNumberToMilestoneTitle.get(e.issueNumber).map { milestoneTitle =>
-          recordDataPoint(milestoneTitle)
+        closedIssueNumbers.remove(e.issue.number)
+        issueNumberToMilestoneTitle.get(e.issue.number).map { milestoneTitle =>
+          val title = oldToNewMilestoneTitles.getOrElse(milestoneTitle, milestoneTitle)
+          recordDataPoint(title)
         }
 
       case _ =>

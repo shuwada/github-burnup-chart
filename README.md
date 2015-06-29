@@ -58,9 +58,7 @@ It fetches data from `https://github.com/owner/repo` and generates burnup charts
 Limitations
 --------------------------------------
 
-- GitHub does not keep track of changes made in milestones. For example, if a milestone had been renamed, two charts will be generated for each, i.e., one for the period till the rename happened and another for the period after the rename.
-
-- Due to the same reason above only the current milestone due date is displayed on a chart. Also, if a milestone had been removed from the repository, the milestone due is not available via API and the chart shows no due date.
+- GitHub does not keep track of changes made in milestones. Therefore only the current milestone due date is displayed on a chart. Also, if a milestone had been removed from the repository, the milestone due is not available via API and the chart shows no due date.
 
 - The tool fetches GitHub issue events every time, i.e., no cache is implemented. It could be a problem if your repository has a large number of issues and activities. But just FYI - it takes only 4 or 5 minutes to fetch all data and draw charts from a repository with ~5,000 issues, ~12,000 commits and 50 milestones. 
 
