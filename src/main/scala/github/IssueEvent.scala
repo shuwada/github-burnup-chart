@@ -12,15 +12,13 @@ case class IssueEvent (
   timestamp: ZonedDateTime,
   event: String,
   issue: Issue,
-  milestoneTitle: Option[String],
-  isPullRequest: Boolean
+  milestoneTitle: Option[String]
 ) {
   def this (jsValue: JsValue) = this (
     (jsValue \ "id").as[Long],
     ZonedDateTime.parse((jsValue \ "created_at").as[String]),
     (jsValue \ "event").as[String],
     new Issue((jsValue \ "issue").as[JsValue]),
-    (jsValue \ "milestone" \ "title").asOpt[String],
-    (jsValue \ "pull_request").toOption.isDefined
+    (jsValue \ "milestone" \ "title").asOpt[String]
   )
 }

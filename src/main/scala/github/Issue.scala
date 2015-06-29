@@ -9,7 +9,8 @@ case class Issue (
   number: Long,
   state: String,
   title: String,
-  milestone: Option[Milestone]
+  milestone: Option[Milestone],
+  isPullRequest: Boolean
 ) {
   def this (jsValue: JsValue) = this (
     (jsValue \ "number").as[Long],
@@ -18,6 +19,7 @@ case class Issue (
     (jsValue \ "milestone").as[JsValue] match {
       case v if v == JsNull => None
       case v:JsValue => Some(new Milestone(v))
-    }
+    },
+    (jsValue \ "pull_request").toOption.isDefined
   )
 }

@@ -116,7 +116,7 @@ object Main extends App {
   def analyzeIssueEvents(issueEvents: Seq[JsValue]): IssueEventProcessor = {
     // Reverse the order of issue events
     val events = issueEvents.map(new IssueEvent(_))
-      .filter(_.isPullRequest == false)
+      .filter(_.issue.isPullRequest == false)
       .reverse
 
     // To find if milestones are renamed, check the current milestone of each issue.
