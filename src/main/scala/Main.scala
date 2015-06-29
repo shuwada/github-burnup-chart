@@ -6,12 +6,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import burnup._
 import cli.CliUtil._
-import github.{IssueEvent, Milestone, GitHubClient}
+import github.{Issue, IssueEvent, Milestone, GitHubClient}
 import org.slf4j.LoggerFactory
 import play.api.libs.json.{JsArray, JsValue, Json}
 
 import scala.collection.JavaConversions._
-import scala.collection.Set
+import scala.collection.{mutable, Set}
 
 
 object Main extends App {
@@ -39,7 +39,7 @@ object Main extends App {
       // analyze GitHub issue events
       val eventProcessor = analyzeIssueEvents(issueEventsPath, milestones)
 
-      // set milestone datails
+      // set milestone details
       val milestonesHistory = eventProcessor.milestoneHistory.toMap
       milestonesHistory.foreach { case (title, history) =>
         history.milestone = milestones.find(_.title == title)
@@ -84,7 +84,7 @@ object Main extends App {
   }
 
   /**
-   * Fetch /repos/:owner/:repo/milestones
+   * Fetch /repos/:owner/:repo/milestones?state=all
    * @return list of milestones
    */
   def fetchGitHubMilestones(githubClient: GitHubClient, owner: String, repo: String): Seq[Milestone] = {
@@ -110,15 +110,51 @@ object Main extends App {
     }
   }
 
+  /**
+   * @param issueEvents list of issue events in reverse chronological order
+   */
   def analyzeIssueEvents(issueEvents: Seq[JsValue]): IssueEventProcessor = {
-    val processor = new IssueEventProcessor
+    // Reverse the order of issue events
+    val events = issueEvents.map(new IssueEvent(_))
+      .filter(_.isPullRequest == false)
+      .reverse
 
-    issueEvents.map(new IssueEvent(_))
-    .filter(_.isPullRequest == false)
-    .reverse
-    .foreach(processor.process(_))
+    // To find if milestones are renamed, check the current milestone of each issue.
+    // Each issue event has 'milestone' property and it retains the *current* milestone
+    // the issue is in. If the milestone was renamed, the *current* one is also renamed too.
+    val issueNumberToCurrentMilestoneTitle = events
+      .flatMap(e => e.issue.milestone map (e.issue.number -> _.title))
+      .toMap
 
-    processor
+    // Process the events. The result keeps the name of the *last* milestone each issue
+    // was put into. The name is the one when the issue was milestoned - it has nothing
+    // to do with the current name if the milestone was renamed.
+    logger.debug(s"Processing the issue events.")
+    val preProcessor = new IssueEventProcessor
+    events.foreach(preProcessor.process(_))
+
+    // If an issue is milestoned now and the current name of the milestone name is different
+    // from that of the milestone when the issue was milestoned, the milestone was renamed
+    // since the issue was milestoned
+    val oldToNewMilestoneTitles = (for (
+      key <- issueNumberToCurrentMilestoneTitle.keys ++ preProcessor.issueNumberToMilestoneTitle.keys;
+      currentName <- issueNumberToCurrentMilestoneTitle.get(key);
+      lastName <- preProcessor.issueNumberToMilestoneTitle.get(key);
+      if lastName != currentName
+    ) yield (lastName, currentName)) toMap
+
+    // If no milestone was renamed, it's done. Otherwise, do processing again.
+    oldToNewMilestoneTitles match {
+      case map if map.isEmpty => preProcessor
+      case map =>
+        logger.debug(s"Milestones renamed: ${oldToNewMilestoneTitles}")
+
+        // Do process all events again. In this path, consider milestones renamed.
+        logger.debug(s"Processing the issue events again with renamed milestones considered.")
+        val processor = new IssueEventProcessor(oldToNewMilestoneTitles)
+        events.foreach(processor.process(_))
+        processor
+    }
   }
 
   /**

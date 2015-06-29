@@ -11,7 +11,7 @@ case class IssueEvent (
   id: Long,
   timestamp: ZonedDateTime,
   event: String,
-  issueNumber: Long,
+  issue: Issue,
   milestoneTitle: Option[String],
   isPullRequest: Boolean
 ) {
@@ -19,7 +19,7 @@ case class IssueEvent (
     (jsValue \ "id").as[Long],
     ZonedDateTime.parse((jsValue \ "created_at").as[String]),
     (jsValue \ "event").as[String],
-    (jsValue \ "issue" \ "number").as[Long],
+    new Issue((jsValue \ "issue").as[JsValue]),
     (jsValue \ "milestone" \ "title").asOpt[String],
     (jsValue \ "pull_request").toOption.isDefined
   )
