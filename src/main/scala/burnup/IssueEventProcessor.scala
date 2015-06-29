@@ -38,9 +38,16 @@ class IssueEventProcessor (val oldToNewMilestoneTitles: Map[String, String] = Ma
           recordDataPoint(title)
         }
       case "demilestoned" =>
-        issueNumberToMilestoneTitle.remove(e.issue.number).map { milestoneTitle =>
+        // demilestone an issue only if the title in the event is same as the milestone
+        // the issue is in. When changing the milestone of an issue from one to the other
+        // on GUI, it sometime results in a sequence of "milestone" and "demilestone" events,
+        // i.e, reverse order.
+        e.milestoneTitle.map { milestoneTitle =>
           val title = oldToNewMilestoneTitles.getOrElse(milestoneTitle, milestoneTitle)
-          recordDataPoint(title)
+          if (issueNumberToMilestoneTitle.get(e.issue.number).exists(_ == title)) {
+            issueNumberToMilestoneTitle.remove(e.issue.number)
+            recordDataPoint(title)
+          }
         }
 
       // when an issue is closed or reopened and if the issue is in milestone, add a data point
