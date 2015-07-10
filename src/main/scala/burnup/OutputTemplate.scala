@@ -60,7 +60,8 @@ $$(function () {
         value: ${toMilliseconds(localDue)},
         width: 2,
         label: {
-          "text": "Due (${localDue.format(DateTimeFormatter.ofPattern("MMMM dd"))})"
+          "text": "Due (${localDue.format(DateTimeFormatter.ofPattern("MMMM dd"))})",
+          "verticalAlign": "middle"
         },
         zIndex: 999
       }],
