@@ -1,4 +1,4 @@
-GitHub Milestone Burnup Chart Genrator
+GitHub Milestone Burnup Chart Genrator [![Circle CI](https://circleci.com/gh/shuwada/github-burnup-chart/tree/master.svg?style=svg)](https://circleci.com/gh/shuwada/github-burnup-chart/tree/master)
 ======================================
 
 What is this?

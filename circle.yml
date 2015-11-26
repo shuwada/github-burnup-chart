@@ -1,0 +1,16 @@
+machine:
+  java:
+    version: oraclejdk8
+
+dependencies:
+  cache_directories:
+    - ~/.m2
+    - ~/.ivy2
+    - ~/.sbt
+
+  override:
+    - ./activator update
+
+test:
+  override:
+    - ./activator clean test
